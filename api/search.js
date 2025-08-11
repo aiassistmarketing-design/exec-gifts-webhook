@@ -20,18 +20,21 @@ export default async function handler(req, res) {
       const embedding = await generateEmbedding(query);
       const results = await searchQdrant(embedding);
       
+      // DEBUG: Log Qdrant results structure
+      console.log('Qdrant results:', JSON.stringify(results, null, 2));
+      
       if (results && results.length > 0) {
         const bestMatch = results[0];
         return res.status(200).json({
-  success: true,
-  source: 'qdrant',
-  data: {
-    question: bestMatch.payload?.question,
-    answer: bestMatch.payload?.answer,
-    product_description: bestMatch.payload?.product_description,
-    score: bestMatch.score
-  }
-});
+          success: true,
+          source: 'qdrant',
+          data: {
+            question: bestMatch.payload?.question,
+            answer: bestMatch.payload?.answer,
+            product_description: bestMatch.payload?.product_description,
+            score: bestMatch.score
+          }
+        });
       }
     } catch (error) {
       console.log('Qdrant failed:', error.message);
