@@ -37,8 +37,13 @@ export default async function handler(req, res) {
         });
       }
     } catch (error) {
-      console.log('Qdrant failed:', error.message);
-    }
+  return res.status(200).json({
+    success: false,
+    message: 'Qdrant debug error',
+    error: error.message,
+    query: query
+  });
+}
 
     // Fallback to Supabase
     try {
