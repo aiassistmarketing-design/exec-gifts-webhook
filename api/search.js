@@ -13,63 +13,35 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('Processing query:', query);
-
     // Try Qdrant first
     try {
       const embedding = await generateEmbedding(query);
       const results = await searchQdrant(embedding);
       
-      // DEBUG: Log Qdrant results structure
-      console.log('Qdrant results:', JSON.stringify(results, null, 2));
-      
       if (results && results.length > 0) {
-        const bestMatch = results[0];
         return res.status(200).json({
           success: true,
           source: 'qdrant',
-          data: {
-            question: bestMatch.payload?.question,
-            answer: bestMatch.payload?.answer,
-            product_description: bestMatch.payload?.product_description,
-            score: bestMatch.score
-          }
+          data: results[0]
         });
-      }
-    } catch (error) {
-      console.log('Qdrant failed:', error.message);
-    }
-
-    // Fallback to Supabase
-    try {
-      const results = await searchSupabase(query);
-      
-      if (results && results.length > 0) {
-        const bestMatch = results[0];
+      } else {
         return res.status(200).json({
-          success: true,
-          source: 'supabase',
-          data: {
-            question: bestMatch.question,
-            answer: bestMatch.answer,
-            product_description: bestMatch.product_description
-          }
+          success: false,
+          message: 'Qdrant found no results',
+          query: query
         });
       }
     } catch (error) {
-      console.log('Supabase failed:', error.message);
+      return res.status(200).json({
+        success: false,
+        message: 'Qdrant error: ' + error.message
+      });
     }
-
-    return res.status(200).json({
-      success: false,
-      message: 'No relevant information found'
-    });
 
   } catch (error) {
-    console.error('Webhook error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error: ' + error.message
+      message: error.message
     });
   }
 }
@@ -88,7 +60,7 @@ async function generateEmbedding(text) {
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`);
+    throw new Error(`OpenAI error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -118,23 +90,4 @@ async function searchQdrant(embedding) {
 
   const data = await response.json();
   return data.result || [];
-}
-
-async function searchSupabase(query) {
-  const response = await fetch(
-    `https://untrclproolrmfycxtkb.supabase.co/rest/v1/qa_knowledge?or=(question.ilike.*${encodeURIComponent(query)}*,answer.ilike.*${encodeURIComponent(query)}*,product_description.ilike.*${encodeURIComponent(query)}*)&limit=3`,
-    {
-      method: 'GET',
-      headers: {
-        'apikey': process.env.SUPABASE_KEY,
-        'Authorization': `Bearer ${process.env.SUPABASE_KEY}`
-      }
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Supabase API error: ${response.status}`);
-  }
-
-  return await response.json();
 }
