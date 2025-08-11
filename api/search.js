@@ -13,105 +13,22 @@ export default async function handler(req, res) {
       });
     }
 
-    // Try Qdrant first
-    let results = null;
-    let source = 'qdrant';
-
-    try {
-      results = await searchQdrant(query);
-    } catch (error) {
-      // Fallback to Supabase
-      try {
-        results = await searchSupabase(query);
-        source = 'supabase';
-      } catch (supabaseError) {
-        return res.status(500).json({
-          success: false,
-          message: 'Search service unavailable'
-        });
+    // DEBUG: Return environment variable status
+    return res.status(200).json({
+      success: false,
+      message: 'Debug mode',
+      debug: {
+        query: query,
+        hasOpenAI: !!process.env.OPENAI_API_KEY,
+        hasQdrant: !!process.env.QDRANT_API_KEY,
+        hasSupabase: !!process.env.SUPABASE_KEY
       }
-    }
-
-    if (results && results.length > 0) {
-      const bestMatch = results[0];
-      return res.status(200).json({
-        success: true,
-        source: source,
-        data: {
-          question: bestMatch.question || bestMatch.payload?.question,
-          answer: bestMatch.answer || bestMatch.payload?.answer,
-          product_description: bestMatch.product_description || bestMatch.payload?.product_description
-        }
-      });
-    } else {
-      return res.status(200).json({
-        success: false,
-        message: 'No relevant information found'
-      });
-    }
+    });
 
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Error: ' + error.message
     });
   }
-}
-
-async function searchQdrant(query) {
-  const embedding = await generateEmbedding(query);
-  
-  const response = await fetch(
-    'https://3f703634-7b1a-454a-9c67-2714374d7598.us-east4-0.gcp.cloud.qdrant.io/collections/qa_knowledge/points/search',
-    {
-      method: 'POST',
-      headers: {
-        'api-key': process.env.QDRANT_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        vector: embedding,
-        limit: 3,
-        score_threshold: 0.7
-      })
-    }
-  );
-
-  if (!response.ok) throw new Error('Qdrant failed');
-  const data = await response.json();
-  return data.result || [];
-}
-
-async function searchSupabase(query) {
-  const response = await fetch(
-    `https://untrclproolrmfycxtkb.supabase.co/rest/v1/qa_knowledge?or=(question.ilike.*${encodeURIComponent(query)}*,answer.ilike.*${encodeURIComponent(query)}*,product_description.ilike.*${encodeURIComponent(query)}*)&limit=3`,
-    {
-      method: 'GET',
-      headers: {
-        'apikey': process.env.SUPABASE_KEY,
-        'Authorization': `Bearer ${process.env.SUPABASE_KEY}`
-      }
-    }
-  );
-
-  if (!response.ok) throw new Error('Supabase failed');
-  return await response.json();
-}
-
-async function generateEmbedding(text) {
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'text-embedding-3-large',
-      input: text
-    })
-  });
-
-  if (!response.ok) throw new Error('OpenAI failed');
-  const data = await response.json();
-  return data.data[0].embedding;
 }
