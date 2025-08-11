@@ -104,7 +104,7 @@ async function searchQdrant(embedding) {
       body: JSON.stringify({
         vector: embedding,
         limit: 3,
-        score_threshold: 0.7
+        score_threshold: 0.5
       })
     }
   );
