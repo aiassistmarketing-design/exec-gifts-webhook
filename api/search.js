@@ -23,15 +23,15 @@ export default async function handler(req, res) {
       if (results && results.length > 0) {
         const bestMatch = results[0];
         return res.status(200).json({
-          success: true,
-          source: 'qdrant',
-          data: {
-            question: bestMatch.payload?.question,
-            answer: bestMatch.payload?.answer,
-            product_description: bestMatch.payload?.product_description,
-            score: bestMatch.score
-          }
-        });
+  success: true,
+  source: 'qdrant',
+  data: {
+    question: bestMatch.payload?.question,
+    answer: bestMatch.payload?.answer,
+    product_description: bestMatch.payload?.product_description,
+    score: bestMatch.score
+  }
+});
       }
     } catch (error) {
       console.log('Qdrant failed:', error.message);
