@@ -19,15 +19,11 @@ export default async function handler(req, res) {
     try {
       const embedding = await generateEmbedding(query);
       const results = await searchQdrant(embedding);
-
-// Return debug info about Qdrant results
-return res.status(200).json({
-  success: false,
-  message: 'Qdrant debug results',
-  resultsLength: results?.length || 0,
-  results: results,
-  query: query
-});
+      
+      // DEBUG: Log Qdrant results structure
+      console.log('Qdrant results:', JSON.stringify(results, null, 2));
+      
+      if (results && results.length > 0) {
         const bestMatch = results[0];
         return res.status(200).json({
           success: true,
@@ -41,13 +37,8 @@ return res.status(200).json({
         });
       }
     } catch (error) {
-  return res.status(200).json({
-    success: false,
-    message: 'Qdrant debug error',
-    error: error.message,
-    query: query
-  });
-}
+      console.log('Qdrant failed:', error.message);
+    }
 
     // Fallback to Supabase
     try {
