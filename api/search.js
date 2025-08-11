@@ -101,7 +101,8 @@ async function searchQdrant(embedding) {
         vector: embedding,
         limit: 3,
         score_threshold: 0.5,
-        with_payload: true
+        with_payload: true,
+        with_vector: false
       })
     }
   );
