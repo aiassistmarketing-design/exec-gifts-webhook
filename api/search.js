@@ -22,13 +22,10 @@ export default async function handler(req, res) {
         const bestMatch = results[0];
         return res.status(200).json({
           success: true,
-          source: 'qdrant',
-          data: {
-            question: bestMatch.payload?.question,
-            answer: bestMatch.payload?.answer,
-            product_description: bestMatch.payload?.product_description,
-            score: bestMatch.score
-          }
+          source: 'qdrant-debug',
+          fullResult: bestMatch,
+          hasPayload: !!bestMatch.payload,
+          payloadKeys: bestMatch.payload ? Object.keys(bestMatch.payload) : []
         });
       }
     } catch (error) {
